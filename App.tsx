@@ -28,9 +28,44 @@ const ScrollToTop = () => {
   return null;
 };
 
+
+// Theme Context
+const ThemeContext = React.createContext({
+  theme: 'light',
+  toggleTheme: () => { },
+});
+
+const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('theme')) {
+      return localStorage.getItem('theme') || 'light';
+    }
+    // Removido a verificação de preferência do sistema para forçar o início em Light
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = React.useContext(ThemeContext);
 
   const navLinks = [
     { path: '/', label: 'Início' },
@@ -41,7 +76,7 @@ const Header: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-solid border-border-light dark:border-border-dark bg-surface-light/80 dark:bg-surface-dark/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-solid border-border-light dark:border-border-dark bg-surface-light/80 dark:bg-surface-dark/90 backdrop-blur-md transition-colors duration-200">
       <div className="layout-container flex justify-center w-full">
         <div className="px-4 md:px-10 py-3 flex items-center justify-between w-full max-w-7xl">
           <Link to="/" className="flex items-center gap-4 text-text-main-light dark:text-white">
@@ -51,7 +86,7 @@ const Header: React.FC = () => {
             <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">Marcos R. Moraes</h2>
           </Link>
 
-          <div className="hidden md:flex flex-1 justify-end items-center gap-8">
+          <div className="hidden md:flex flex-1 justify-end items-center gap-6 lg:gap-8">
             <nav className="flex items-center gap-6 lg:gap-9">
               {navLinks.map((link) => (
                 <Link
@@ -66,19 +101,43 @@ const Header: React.FC = () => {
                 </Link>
               ))}
             </nav>
-            <Link to="/contato">
-              <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-slate-50 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary-hover transition-colors shadow-sm hover:shadow-md">
-                <span className="truncate">Fale Comigo</span>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-text-main-light dark:text-white transition-colors"
+                aria-label="Alternar tema"
+              >
+                <span className="material-symbols-outlined">
+                  {theme === 'light' ? 'dark_mode' : 'light_mode'}
+                </span>
               </button>
-            </Link>
+
+              <Link to="/contato">
+                <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-slate-50 text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary-hover transition-colors shadow-sm hover:shadow-md">
+                  <span className="truncate">Fale Comigo</span>
+                </button>
+              </Link>
+            </div>
           </div>
 
-          <button
-            className="md:hidden text-text-main-light dark:text-white p-2"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <span className="material-symbols-outlined">{isMenuOpen ? 'close' : 'menu'}</span>
-          </button>
+          <div className="flex items-center gap-4 md:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-text-main-light dark:text-white transition-colors"
+              aria-label="Alternar tema"
+            >
+              <span className="material-symbols-outlined">
+                {theme === 'light' ? 'dark_mode' : 'light_mode'}
+              </span>
+            </button>
+            <button
+              className="text-text-main-light dark:text-white p-2"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <span className="material-symbols-outlined">{isMenuOpen ? 'close' : 'menu'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -106,7 +165,7 @@ const Header: React.FC = () => {
 };
 
 const Footer: React.FC = () => (
-  <footer className="w-full border-t border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark">
+  <footer className="w-full border-t border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark transition-colors duration-200">
     <div className="layout-container flex flex-col items-center justify-center w-full px-4 md:px-10 lg:px-40 py-10">
       <div className="flex flex-col gap-6 text-center max-w-7xl w-full">
         <div className="flex flex-wrap justify-center gap-6">
@@ -140,23 +199,25 @@ const Footer: React.FC = () => (
 
 const App: React.FC = () => {
   return (
-    <HashRouter>
-      <ScrollToTop />
-      <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-        <Header />
-        <main className="flex-grow flex flex-col items-center w-full">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/formacao" element={<Skills />} />
-            <Route path="/producao" element={<Publications />} />
-            <Route path="/atuacao" element={<Experience />} />
-            <Route path="/bancas" element={<Events />} />
-            <Route path="/contato" element={<Contact />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </HashRouter>
+    <ThemeProvider>
+      <HashRouter>
+        <ScrollToTop />
+        <div className="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors duration-200">
+          <Header />
+          <main className="flex-grow flex flex-col items-center w-full">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/formacao" element={<Skills />} />
+              <Route path="/producao" element={<Publications />} />
+              <Route path="/atuacao" element={<Experience />} />
+              <Route path="/bancas" element={<Events />} />
+              <Route path="/contato" element={<Contact />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </HashRouter>
+    </ThemeProvider>
   );
 };
 
