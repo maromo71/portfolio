@@ -24,6 +24,15 @@ const Contact: React.FC = () => {
     e.preventDefault();
     setStatus('submitting');
 
+    // Simulação local para teste visual
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      setTimeout(() => {
+        setStatus('success');
+        setFormData({ name: '', email: '', subject: 'Dúvida Acadêmica', message: '' });
+      }, 1000);
+      return;
+    }
+
     fetch("/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
